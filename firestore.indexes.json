@@ -1,0 +1,24 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "master_swaps",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "broker_id",     "order": "ASCENDING" },
+        { "fieldPath": "currency_pair", "order": "ASCENDING" },
+        { "fieldPath": "direction",     "order": "ASCENDING" },
+        { "fieldPath": "date",          "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "swap_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "broker_id",     "order": "ASCENDING" },
+        { "fieldPath": "currency_pair", "order": "ASCENDING" },
+        { "fieldPath": "date",          "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // master_swaps: 認証済みユーザーは読み取り可能、書き込みは管理者（Cloud Functions）のみ
+    match /master_swaps/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Cloud Functionsのみ（Admin SDKはルール適用外）
+    }
+
+    // users/{uid}/positions: 本人のみ読み書き可能
+    match /users/{uid}/positions/{posId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // users/{uid}/swap_history: 本人のみ読み書き可能
+    match /users/{uid}/swap_history/{histId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

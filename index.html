@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer">
+  <title>FXスワップ貯金箱 - スワップポイント管理アプリ</title>
+  <meta name="description" content="FXスワップポイントを自動集計・管理するアプリ。毎日の獲得スワップを可視化し、長期資産形成をサポートします。">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+
+  <!-- DSEG7 Classic Font via CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/dseg7-classic/index.css" rel="stylesheet">
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================================================
+     ログインオーバーレイ
+     =================================================== -->
+<div id="login-overlay">
+  <div class="login-box">
+
+    <div class="login-logo">
+      <!-- 豚の貯金箱アイコン -->
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="12" fill="rgba(255,153,0,0.1)" stroke="rgba(255,153,0,0.3)" stroke-width="1"/>
+        <text x="24" y="32" text-anchor="middle" font-size="26" fill="#FF9900">🐷</text>
+      </svg>
+      <h1>FXスワップ貯金箱</h1>
+      <div class="logo-sub">FX Swap Piggy Bank</div>
+      <div class="demo-badge">DEMO MODE</div>
+    </div>
+
+    <div id="login-error" class="login-error"></div>
+
+    <!-- ログインフォーム -->
+    <form id="login-form">
+      <div class="form-group">
+        <label for="login-email">メールアドレス</label>
+        <input type="email" id="login-email" placeholder="example@email.com" autocomplete="email" required>
+      </div>
+      <div class="form-group">
+        <label for="login-password">パスワード</label>
+        <input type="password" id="login-password" placeholder="8文字以上の英数字" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-primary" id="login-btn">ログイン</button>
+      <button type="button" class="btn-secondary" id="demo-login-btn">デモモードで試す（ログイン不要）</button>
+    </form>
+
+    <div class="login-switch">
+      アカウントをお持ちでない方は
+      <a id="show-register-link">新規登録</a>
+    </div>
+    <div class="login-switch" style="margin-top:8px;">
+      <a id="show-reset-link">パスワードをお忘れの方</a>
+    </div>
+
+    <!-- 新規登録フォーム（初期非表示） -->
+    <form id="register-form" style="display:none;">
+      <div class="form-group">
+        <label for="reg-email">メールアドレス</label>
+        <input type="email" id="reg-email" placeholder="example@email.com" autocomplete="email" required>
+      </div>
+      <div class="form-group">
+        <label for="reg-password">パスワード（英数字8文字以上）</label>
+        <input type="password" id="reg-password" placeholder="8文字以上" autocomplete="new-password" required>
+      </div>
+      <button type="submit" class="btn-primary" id="register-btn">新規登録</button>
+    </form>
+    <div id="register-switch" class="login-switch" style="display:none;">
+      <a id="show-login-link">ログインに戻る</a>
+    </div>
+
+    <!-- パスワードリセットフォーム（初期非表示） -->
+    <form id="reset-form" style="display:none;">
+      <div class="form-group">
+        <label for="reset-email">登録済みメールアドレス</label>
+        <input type="email" id="reset-email" placeholder="example@email.com" autocomplete="email" required>
+      </div>
+      <button type="submit" class="btn-primary" id="reset-btn">リセットメールを送信</button>
+    </form>
+    <div id="reset-switch" class="login-switch" style="display:none;">
+      <a id="show-login-link2">ログインに戻る</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================================================
+     アプリシェル
+     =================================================== -->
+<div id="app-shell" class="hidden">
+
+  <!-- タブバー -->
+  <nav class="tab-bar" role="tablist">
+    <button class="tab-btn active" id="tab-btn-home" role="tab" aria-selected="true" aria-controls="panel-home" data-tab="home">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      ホーム
+    </button>
+    <button class="tab-btn" id="tab-btn-detail" role="tab" aria-selected="false" aria-controls="panel-detail" data-tab="detail">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>
+      </svg>
+      詳細
+    </button>
+    <button class="tab-btn" id="tab-btn-sim" role="tab" aria-selected="false" aria-controls="panel-sim" data-tab="sim">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      シミュ
+    </button>
+    <button class="tab-btn" id="tab-btn-menu" role="tab" aria-selected="false" aria-controls="panel-menu" data-tab="menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      メニュー
+    </button>
+  </nav>
+
+  <!-- タブコンテンツ -->
+  <div class="tab-content-wrapper">
+
+    <!-- ===== Tab 1: Home ===== -->
+    <section class="tab-panel active" id="panel-home" role="tabpanel" aria-labelledby="tab-btn-home">
+
+      <!-- ヘッダー -->
+      <header class="home-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="home-logo">🐷 FXスワップ貯金箱</span>
+          <button class="btn-primary" id="home-settings-shortcut" style="padding: 6px 12px; font-size: 11px; margin-top: 0; width: auto; display: flex; align-items: center; gap: 4px; border-radius: 6px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>口座・保有通貨の設定</span>
+          </button>
+        </div>
+        <button class="icon-btn" id="home-menu-btn" aria-label="メニューを開く">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </header>
+
+      <!-- メインビジュアル（黒背景・数値表示） -->
+      <div class="home-main-visual">
+        <div class="home-label">本日の獲得スワップポイント</div>
+        <div class="home-value-container">
+          <span class="home-value" id="home-today-value">0</span><span class="home-value-unit">円</span>
+        </div>
+        <div class="home-date" id="home-date"></div>
+      </div>
+
+      <!-- サマリーカード -->
+      <div class="home-summary-grid">
+        <div class="summary-card">
+          <div class="summary-card-label">今月の合計</div>
+          <div class="summary-card-value yellow-italic" id="home-monthly-value">0</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">円</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">累計スワップ</div>
+          <div class="summary-card-value yellow-italic" id="home-total-value">0</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">円</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">保有口座数</div>
+          <div class="summary-card-value dim" id="home-account-count">0</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">口座</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-label">月次換算（目安）</div>
+          <div class="summary-card-value green" id="home-monthly-est">0</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">円/月</div>
+        </div>
+      </div>
+
+      <!-- 保有ポジション一覧 -->
+      <div class="home-positions-section">
+        <div class="section-title">保有ポジション</div>
+        <div id="home-position-list">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== Tab 2: Detail ===== -->
+    <section class="tab-panel" id="panel-detail" role="tabpanel" aria-labelledby="tab-btn-detail">
+      <div class="detail-panel">
+
+        <!-- 口座詳細カード一覧 -->
+        <div class="section-title" style="margin-bottom:12px;">口座詳細</div>
+        <div id="account-cards-container">
+          <div class="loading-spinner"></div>
+        </div>
+
+        <!-- 通帳履歴 -->
+        <div class="passbook-section">
+          <div class="passbook-title">スワップ付与履歴</div>
+          <div class="passbook-table">
+            <div class="passbook-header">
+              <span>日付</span>
+              <span>証券会社/通貨</span>
+              <span style="text-align:center;">日数</span>
+              <span style="text-align:right;">獲得</span>
+            </div>
+            <div id="passbook-list">
+              <div class="loading-spinner"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== Tab 3: Simulation ===== -->
+    <section class="tab-panel" id="panel-sim" role="tabpanel" aria-labelledby="tab-btn-sim">
+      <div class="simulation-panel">
+
+        <div class="simulation-header">
+          <h2>シミュレーション</h2>
+          <select class="simulation-dropdown" id="sim-period-select" aria-label="シミュレーション期間を選択">
+            <option value="30">1ヶ月</option>
+            <option value="90">3ヶ月</option>
+            <option value="180">6ヶ月</option>
+            <option value="365" selected>12ヶ月</option>
+            <option value="1095">3年</option>
+            <option value="1825">5年</option>
+            <option value="3650">10年</option>
+          </select>
+        </div>
+
+        <!-- グラフ -->
+        <div class="chart-container">
+          <div class="chart-note">※直近のスワップポイント額を基に計算</div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="sim-chart" aria-label="スワップシミュレーション棒グラフ"></canvas>
+          </div>
+        </div>
+
+        <!-- 合計カード -->
+        <div class="sim-total-card">
+          <div class="sim-total-label">期間内 累計獲得予測</div>
+          <div>
+            <span class="sim-total-value" id="sim-total-value">0</span><span class="sim-total-value sim-total-unit" id="sim-total-unit">円</span>
+          </div>
+          <div class="sim-period-note" id="sim-period-note"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== Tab 4: Menu ===== -->
+    <section class="tab-panel" id="panel-menu" role="tabpanel" aria-labelledby="tab-btn-menu">
+      <div class="menu-panel">
+
+        <div class="menu-user-info">
+          <div class="menu-user-label">ログイン中</div>
+          <div class="menu-user-email" id="menu-user-email">-</div>
+        </div>
+
+        <ul class="menu-list" role="list">
+
+          <!-- 1. 口座・保有通貨の設定 -->
+          <li class="menu-item" id="menu-item-settings" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+                </svg>
+              </div>
+              <div>
+                <div class="menu-item-text">口座・保有通貨の設定</div>
+                <div class="menu-item-sub">証券会社・通貨ペアの登録・編集</div>
+              </div>
+            </div>
+            <svg class="menu-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </li>
+
+          <!-- 2. 利用規約 -->
+          <li class="menu-item" id="menu-item-terms" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <div class="menu-item-text">利用規約</div>
+            </div>
+            <svg class="menu-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </li>
+
+          <!-- 3. 個人情報の取り扱い -->
+          <li class="menu-item" id="menu-item-privacy" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </div>
+              <div class="menu-item-text">個人情報の取り扱いについて</div>
+            </div>
+            <svg class="menu-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </li>
+
+          <!-- 4. 免責事項 -->
+          <li class="menu-item" id="menu-item-disclaimer" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div class="menu-item-text">免責事項 / 投資リスクについて</div>
+            </div>
+            <svg class="menu-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </li>
+
+          <!-- 5. お問い合わせ -->
+          <li class="menu-item" id="menu-item-contact" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <div class="menu-item-text">お問い合わせ / ご意見・ご要望</div>
+            </div>
+            <svg class="menu-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </li>
+
+          <!-- 6. バージョン -->
+          <li class="menu-item" style="cursor:default;" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="menu-item-text">アプリバージョン</div>
+            </div>
+            <span class="menu-version">ver 1.0.0</span>
+          </li>
+
+          <!-- 7. ログアウト -->
+          <li class="menu-item danger" id="menu-item-logout" role="listitem">
+            <div class="menu-item-left">
+              <div class="menu-item-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </div>
+              <div class="menu-item-text">ログアウト</div>
+            </div>
+            <svg class="menu-item-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </li>
+
+        </ul>
+      </div>
+    </section>
+
+  </div><!-- /.tab-content-wrapper -->
+
+  <!-- アフィリエイトタイル -->
+  <div class="banner-bar" role="complementary" aria-label="証券会社一覧">
+    <div class="banner-header-label">口座開設</div>
+    <div class="banner-tiles-scroll">
+      <div class="banner-tiles" id="banner-tiles"></div>
+    </div>
+  </div>
+
+</div><!-- /#app-shell -->
+
+
+<!-- ===================================================
+     モーダル: 口座・保有通貨の設定
+     =================================================== -->
+<div class="modal-overlay" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-settings-title">口座・保有通貨の設定</h2>
+      <button class="modal-close" data-close="modal-settings" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <!-- 追加フォーム -->
+      <div class="crud-form">
+        <h3 id="crud-form-title">ポジションを追加</h3>
+        <input type="hidden" id="crud-edit-id">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label for="crud-broker">証券会社</label>
+          <select id="crud-broker">
+            <option value="">選択してください</option>
+            <option value="sbi_fx">SBI FXトレード</option>
+            <option value="gmo_fx">GMOクリック証券</option>
+            <option value="dmm_fx">DMM FX</option>
+            <option value="oanda_fx">OANDA Japan</option>
+            <option value="gaitame">外為どっとコム</option>
+            <option value="minnano_fx">みんなのFX</option>
+            <option value="matsui_fx">松井証券FX</option>
+            <option value="central_fx">セントラル短資FX</option>
+            <option value="lion_fx">ヒロセ通商 LION FX</option>
+            <option value="kabu_com">auカブコム証券</option>
+            <option value="gaitame_online">外為オンライン</option>
+            <option value="m2j">マネースクエア</option>
+            <option value="himawari">ひまわり証券</option>
+            <option value="monex_fx">マネックスFX</option>
+            <option value="rakuten_fx">楽天証券FX</option>
+            <option value="light_fx">Light FX</option>
+            <option value="okasan_fx">岡三オンライン</option>
+            <option value="saxo_bank">サクソバンク証券</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom:12px;">
+          <div class="form-group">
+            <label for="crud-pair">通貨ペア</label>
+            <select id="crud-pair">
+              <option value="USD_JPY">米ドル/円 (USD/JPY)</option>
+              <option value="EUR_JPY">ユーロ/円 (EUR/JPY)</option>
+              <option value="GBP_JPY">英ポンド/円 (GBP/JPY)</option>
+              <option value="AUD_JPY">豪ドル/円 (AUD/JPY)</option>
+              <option value="NZD_JPY">NZドル/円 (NZD/JPY)</option>
+              <option value="CAD_JPY">カナダドル/円 (CAD/JPY)</option>
+              <option value="CHF_JPY">スイスフラン/円 (CHF/JPY)</option>
+              <option value="ZAR_JPY">南アランド/円 (ZAR/JPY)</option>
+              <option value="TRY_JPY">トルコリラ/円 (TRY/JPY)</option>
+              <option value="MXN_JPY">メキシコペソ/円 (MXN/JPY)</option>
+              <option value="CZK_JPY">チェココルナ/円 (CZK/JPY)</option>
+              <option value="HUF_JPY">ハンガリーフォリント/円 (HUF/JPY)</option>
+              <option value="RUB_JPY">ロシアルーブル/円 (RUB/JPY)</option>
+              <option value="CNH_JPY">オフショア人民元/円 (CNH/JPY)</option>
+              <option value="HKD_JPY">香港ドル/円 (HKD/JPY)</option>
+              <option value="SGD_JPY">シンガポールドル/円 (SGD/JPY)</option>
+              <option value="PLN_JPY">ポーランドズロチ/円 (PLN/JPY)</option>
+              <option value="NOK_JPY">ノルウェークローネ/円 (NOK/JPY)</option>
+              <option value="SEK_JPY">スウェーデンクローナ/円 (SEK/JPY)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="crud-direction">売買方向</label>
+            <select id="crud-direction">
+              <option value="buy">買い（ロング）</option>
+              <option value="sell">売り（ショート）</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="crud-amount">保有数量（通貨単位）</label>
+          <input type="text" id="crud-amount" placeholder="例: 55,000（55,000通貨）">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-primary" id="crud-save-btn" style="padding:12px;">登録する</button>
+          <button class="btn-secondary" id="crud-cancel-btn" style="display:none;padding:12px;">キャンセル</button>
+        </div>
+      </div>
+
+      <!-- 登録済みポジション一覧 -->
+      <div class="section-title">登録済みポジション</div>
+      <ul class="position-list" id="crud-position-list">
+        <div class="loading-spinner"></div>
+      </ul>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     モーダル: 利用規約
+     =================================================== -->
+<div class="modal-overlay" id="modal-terms" role="dialog" aria-modal="true" aria-labelledby="modal-terms-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-terms-title">利用規約</h2>
+      <button class="modal-close" data-close="modal-terms" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <h3>第1条（目的）</h3>
+      <p>本アプリ「FXスワップ貯金箱」（以下「本アプリ」）は、外国為替証拠金取引（FX取引）のスワップポイントを自動集計・可視化し、ユーザーの資産管理をサポートすることを目的とするツールです。</p>
+      <h3>第2条（投資勧誘の禁止）</h3>
+      <p>本アプリは、いかなる金融商品の投資勧誘・助言・推奨を行うものではありません。本アプリ内に表示される情報は情報提供のみを目的としており、投資の意思決定を促すものではありません。金融商品取引法（金商法）第29条および関連法令の規定を遵守しています。</p>
+      <h3>第3条（免責）</h3>
+      <p>本アプリが提供する情報は、正確性・完全性・最新性を保証するものではありません。本アプリの利用により生じた損害について、開発者は一切の責任を負いません。</p>
+      <h3>第4条（禁止事項）</h3>
+      <p>ユーザーは、本アプリを違法行為・公序良俗に反する行為・他のユーザーや第三者への損害を与える行為に利用してはなりません。</p>
+      <h3>第5条（規約の変更）</h3>
+      <p>開発者は事前の通知なく本規約を変更することがあります。変更後の規約はアプリ内に掲示した時点から効力を生じます。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     モーダル: プライバシーポリシー
+     =================================================== -->
+<div class="modal-overlay" id="modal-privacy" role="dialog" aria-modal="true" aria-labelledby="modal-privacy-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-privacy-title">個人情報の取り扱いについて</h2>
+      <button class="modal-close" data-close="modal-privacy" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <h3>収集する情報</h3>
+      <p>本アプリでは、メールアドレス・登録されたFX口座情報（証券会社名・通貨ペア・保有数量）を収集します。決済情報・マイナンバー等の機微情報は収集しません。</p>
+      <h3>利用目的</h3>
+      <p>収集した情報は、スワップポイントの計算・表示、アカウント認証、およびサービス改善のためにのみ使用します。第三者への販売・提供は行いません。</p>
+      <h3>データの保管</h3>
+      <p>データはGoogle Firebase（Firestore）上に暗号化して保管されます。Googleのデータセキュリティポリシーに準拠した管理が行われます。</p>
+      <h3>データの削除</h3>
+      <p>アカウント削除の申請はお問い合わせフォームより受け付けます。削除申請後30日以内に対応いたします。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     モーダル: 免責事項
+     =================================================== -->
+<div class="modal-overlay" id="modal-disclaimer" role="dialog" aria-modal="true" aria-labelledby="modal-disclaimer-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-disclaimer-title">免責事項 / 投資リスクについて</h2>
+      <button class="modal-close" data-close="modal-disclaimer" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <h3>リスクの告知</h3>
+      <p>外国為替証拠金取引（FX取引）は、元本の全額を上回る損失が発生するリスクを伴います。スワップポイントは市場環境・各証券会社のポリシーにより予告なく変動します。</p>
+      <h3>シミュレーションについて</h3>
+      <p>本アプリのシミュレーション機能は、直近のスワップポイントを基に単利で計算した参考値です。将来の利益を保証するものではありません。実際の取引結果は大きく異なる場合があります。</p>
+      <h3>スクレイピングデータについて</h3>
+      <p>各証券会社のスワップポイントデータは自動取得していますが、取得タイミング・精度に誤差が生じる場合があります。最終的な確認は各証券会社の公式サイトでお願いします。</p>
+      <h3>法的免責</h3>
+      <p>本アプリは金融商品取引業者ではなく、投資助言業の登録も行っていません。本アプリの情報を基に行われた投資行動の結果について、開発者は一切の法的責任を負いません。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     モーダル: お問い合わせ
+     =================================================== -->
+<div class="modal-overlay" id="modal-contact" role="dialog" aria-modal="true" aria-labelledby="modal-contact-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-contact-title">お問い合わせ</h2>
+      <button class="modal-close" data-close="modal-contact" aria-label="閉じる">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>ご意見・ご要望・不具合のご報告は以下のメールアドレスにお送りください。</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="mailto:support@fx-swap-piggybank.app" style="color:var(--accent-light);font-size:15px;font-weight:600;">support@fx-swap-piggybank.app</a>
+      </p>
+      <p style="font-size:12px;color:var(--text-dim);">お問い合わせの内容によっては、回答にお時間をいただく場合があります。あらかじめご了承ください。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     警告ダイアログ（非対応証券会社）
+     =================================================== -->
+<div class="alert-dialog" id="alert-unsupported" role="alertdialog" aria-modal="true" aria-labelledby="alert-unsupported-title">
+  <div class="alert-box">
+    <div class="alert-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <div class="alert-title" id="alert-unsupported-title">登録不可</div>
+    <div class="alert-message">※スワップポイントの自動入手ができない証券会社です。</div>
+    <label class="alert-manual-option" for="alert-manual-check">
+      <input type="checkbox" id="alert-manual-check">
+      <span class="alert-manual-label">手動入力モードで登録する</span>
+    </label>
+    <div class="alert-actions">
+      <button class="btn-alert-ok" id="alert-unsupported-ok">閉じる</button>
+      <button class="btn-alert-cancel" id="alert-unsupported-manual">手動入力へ</button>
+    </div>
+  </div>
+</div>
+
+<!-- スナックバー -->
+<div class="snackbar" id="snackbar" role="status" aria-live="polite"></div>
+
+<!-- スクリプト -->
+<script src="firebase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
