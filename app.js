@@ -49,22 +49,22 @@ const BROKER_SHORT = {
 
 // 全アフィリエイト会社リスト（ロゴ画像・キャンペーン情報付き）
 const ALL_AFFILIATES = [
-  { name: 'SBI FXトレード',     url: 'https://www.sbifxt.co.jp/', logo: 'banner_sbi.png', campaign: '新規口座開設で最大100万円キャッシュバックキャンペーン実施中！' },
-  { name: 'GMOクリック証券',     url: 'https://www.gmo-click.com/', logo: 'banner_gmo.png', campaign: '最大100万円キャッシュバック！スワップ金利業界最高水準' },
-  { name: 'DMM FX',            url: 'https://fx.dmm.com/', logo: 'banner_dmm.png', campaign: '新規口座開設＆取引で最大30万円キャッシュバック実施中！' },
-  { name: 'みんなのFX',         url: 'https://min-fx.jp/', logo: 'https://min-fx.jp/wp-content/themes/minfx/images/common/logo.svg', campaign: 'スワップNo.1挑戦キャンペーン！新規口座開設で最大100万円' },
-  { name: '外為どっとコム',      url: 'https://www.gaitame.com/', logo: 'https://www.gaitame.com/assets/img/common/logo.png', campaign: 'らくらくFX積立＆新規開設で最大100万円還元キャンペーン' },
-  { name: '松井証券FX',         url: 'https://www.matsui.co.jp/', logo: 'https://www.matsui.co.jp/img/logo.gif', campaign: '1通貨から取引可能！新規口座開設で取引手数料キャッシュバック' },
-  { name: 'セントラル短資FX',    url: 'https://www.central-tanshifx.com/', logo: 'https://www.central-tanshifx.com/common-v2/images/logo.png', campaign: 'メキシコペソ/円・高金利スワップ優遇キャンペーン開催中！' },
-  { name: 'LION FX',           url: 'https://hirose-fx.jp/', logo: 'https://hirose-fx.jp/img/logo.gif', campaign: '新規口座開設＆取引で最大100万円＋選べる高級グルメプレゼント！' },
-  { name: 'auカブコム証券',      url: 'https://kabu.com/', logo: 'https://kabu.com/img/common/logo_kabu.svg', campaign: 'au回線やPontaポイントと連携でさらにお得に取引キャンペーン' },
-  { name: '外為オンライン',      url: 'https://www.gaitameonline.com/', logo: 'https://www.gaitameonline.com/images/common/header_logo.gif', campaign: '新規口座開設＆一定取引で最大150,000円キャッシュバック！' },
-  { name: 'マネースクエア',      url: 'https://www.m2j.co.jp/', logo: 'https://www.m2j.co.jp/img/logo.svg', campaign: 'トラリピ新規スタートキャンペーン！最大12万ポイント還元' },
-  { name: 'ひまわり証券',        url: 'https://sec.himawari-group.co.jp/', logo: 'https://sec.himawari-group.co.jp/images/common/logo.gif', campaign: 'ループ・イフダン新規口座開設で最大10万円キャッシュバック' },
-  { name: 'マネックスFX',        url: 'https://mxp1.monex.co.jp/', logo: 'https://mxp1.monex.co.jp/pc/servlet/ITS/fx/FxTop', campaign: '新規口座開設＆取引で最大10万円キャッシュバックキャンペーン' },
-  { name: '楽天証券FX',          url: 'https://www.rakuten-sec.co.jp/web/fx/', logo: 'https://www.rakuten-sec.co.jp/img/header/logo.svg', campaign: '楽天カードでFX積立可能！新規取引で最大30万ポイント付与' },
-  { name: 'Light FX',           url: 'https://lightfx.jp/', logo: 'https://lightfx.jp/wp-content/themes/lightfx/images/common/logo.svg', campaign: '新規口座開設最大100万円＆スワップ強化通貨キャンペーン' },
-  { name: '岡三オンライン',       url: 'https://www.okasan-online.co.jp/fx/', logo: 'https://www.okasan-online.co.jp/images/logo.png', campaign: '新規口座開設＆お取引で最大50,000円キャッシュバック！' },
+  { name: 'SBI FXトレード',     broker_id: 'sbi_fx', logo: 'banner_sbi.png' },
+  { name: 'GMOクリック証券',     broker_id: 'gmo_fx', logo: 'banner_gmo.png' },
+  { name: 'DMM FX',            broker_id: 'dmm_fx', logo: 'banner_dmm.png' },
+  { name: 'みんなのFX',         broker_id: 'minnano_fx', logo: 'https://min-fx.jp/wp-content/themes/minfx/images/common/logo.svg' },
+  { name: '外為どっとコム',      broker_id: 'gaitame', logo: 'https://www.gaitame.com/assets/img/common/logo.png' },
+  { name: '松井証券FX',         broker_id: 'matsui_fx', logo: 'https://www.matsui.co.jp/img/logo.gif' },
+  { name: 'セントラル短資FX',    broker_id: 'central_fx', logo: 'https://www.central-tanshifx.com/common-v2/images/logo.png' },
+  { name: 'LION FX',           broker_id: 'lion_fx', logo: 'https://hirose-fx.jp/img/logo.gif' },
+  { name: 'auカブコム証券',      broker_id: 'kabu_com', logo: 'https://kabu.com/img/common/logo_kabu.svg' },
+  { name: '外為オンライン',      broker_id: 'gaitame_online', logo: 'https://www.gaitameonline.com/images/common/header_logo.gif' },
+  { name: 'マネースクエア',      broker_id: 'm2j', logo: 'https://www.m2j.co.jp/img/logo.svg' },
+  { name: 'ひまわり証券',        broker_id: 'himawari', logo: 'https://sec.himawari-group.co.jp/images/common/logo.gif' },
+  { name: 'マネックスFX',        broker_id: 'monex_fx', logo: 'https://sec.himawari-group.co.jp/images/common/logo.gif' },
+  { name: '楽天証券FX',          broker_id: 'rakuten_fx', logo: 'https://www.rakuten-sec.co.jp/img/header/logo.svg' },
+  { name: 'Light FX',           broker_id: 'light_fx', logo: 'https://lightfx.jp/wp-content/themes/lightfx/images/common/logo.svg' },
+  { name: '岡三オンライン',       broker_id: 'okasan_fx', logo: 'https://www.okasan-online.co.jp/images/logo.png' },
 ];
 
 // 通貨ペア表示名
@@ -961,8 +961,12 @@ function renderBannerTiles() {
 
   container.innerHTML = displayBanners.map(a => {
     const fallback = _svgLogoCache[a.name];
-    const campaignHtml = '<div class="banner-tile-campaign">' + (a.campaign || '') + '</div>';
-    return '<a class="banner-tile" href="' + a.url + '" target="_blank" rel="noopener noreferrer">' +
+    
+    // firebase.js の AFFILIATE_LINKS から動的に取得
+    const linkInfo = (window.AFFILIATE_LINKS && window.AFFILIATE_LINKS[a.broker_id]) || { url: '#', campaign: '' };
+    const campaignHtml = '<div class="banner-tile-campaign">' + (linkInfo.campaign || '') + '</div>';
+    
+    return '<a class="banner-tile" href="' + linkInfo.url + '" target="_blank" rel="noopener noreferrer">' +
       '<div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:4px">' +
         '<div class="banner-logo-wrapper">' +
           '<img src="' + a.logo + '" alt="' + a.name + '" data-fallback="' + fallback + '">' +

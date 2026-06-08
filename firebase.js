@@ -10,6 +10,75 @@ const firebaseConfig = window.firebaseConfig || {
   measurementId: "G-MQL10PC8MZ"
 };
 
+// ===== アフィリエイトリンク設定 =====
+// ※ 各証券会社とのアフィリエイト提携後、取得したURLやキャンペーン内容をこちらに書き換えてください。
+window.AFFILIATE_LINKS = {
+  sbi_fx: {
+    url: 'https://www.sbifxt.co.jp/', // 例: 'https://px.a8.net/svt/ejp?a8mat=...' など
+    campaign: '新規口座開設で最大100万円キャッシュバックキャンペーン実施中！'
+  },
+  gmo_fx: {
+    url: 'https://www.gmo-click.com/',
+    campaign: '最大100万円キャッシュバック！スワップ金利業界最高水準'
+  },
+  dmm_fx: {
+    url: 'https://fx.dmm.com/',
+    campaign: '新規口座開設＆取引で最大30万円キャッシュバック実施中！'
+  },
+  minnano_fx: {
+    url: 'https://min-fx.jp/',
+    campaign: 'スワップNo.1挑戦キャンペーン！新規口座開設で最大100万円'
+  },
+  gaitame: {
+    url: 'https://www.gaitame.com/',
+    campaign: 'らくらくFX積立＆新規開設で最大100万円還元キャンペーン'
+  },
+  matsui_fx: {
+    url: 'https://www.matsui.co.jp/',
+    campaign: '1通貨から取引可能！新規口座開設で取引手数料キャッシュバック'
+  },
+  central_fx: {
+    url: 'https://www.central-tanshifx.com/',
+    campaign: 'メキシコペソ/円・高金利スワップ優遇キャンペーン開催中！'
+  },
+  lion_fx: {
+    url: 'https://hirose-fx.jp/',
+    campaign: '新規口座開設＆取引で最大100万円＋選べる高級グルメプレゼント！'
+  },
+  kabu_com: {
+    url: 'https://kabu.com/',
+    campaign: 'au回線やPontaポイントと連携でさらにお得に取引キャンペーン'
+  },
+  gaitame_online: {
+    url: 'https://www.gaitameonline.com/',
+    campaign: '新規口座開設＆一定取引で最大150,000円キャッシュバック！'
+  },
+  m2j: {
+    url: 'https://www.m2j.co.jp/',
+    campaign: 'トラリピ新規スタートキャンペーン！最大12万ポイント還元'
+  },
+  himawari: {
+    url: 'https://sec.himawari-group.co.jp/',
+    campaign: 'ループ・イフダン新規口座開設で最大10万円キャッシュバック'
+  },
+  monex_fx: {
+    url: 'https://mxp1.monex.co.jp/pc/servlet/ITS/fx/FxTop',
+    campaign: '新規口座開設＆取引で最大10万円キャッシュバックキャンペーン'
+  },
+  rakuten_fx: {
+    url: 'https://www.rakuten-sec.co.jp/web/fx/',
+    campaign: '楽天カードでFX積立可能！新規取引で最大30万ポイント付与'
+  },
+  light_fx: {
+    url: 'https://lightfx.jp/',
+    campaign: '新規口座開設最大100万円＆スワップ強化通貨キャンペーン'
+  },
+  okasan_fx: {
+    url: 'https://www.okasan-online.co.jp/fx/',
+    campaign: '新規口座開設＆お取引で最大50,000円キャッシュバック！'
+  }
+};
+
 // Firebase SDKの初期化（compat版）
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();

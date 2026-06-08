@@ -1,0 +1,6 @@
+{
+  "appId": "app.fxswap.piggybank",
+  "appName": "FXスワップ貯金箱",
+  "webDir": ".",
+  "bundledWebRuntime": false
+}
