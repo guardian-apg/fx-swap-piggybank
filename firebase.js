@@ -1,13 +1,12 @@
 // ===== Firebase 初期化 =====
 // ※ 実際のFirebaseプロジェクトの設定値に差し替えてください
 const firebaseConfig = window.firebaseConfig || {
-  apiKey: "AIzaSyDGdgxmyV3tbNhJlvRmQtdEZIAavgbPwes",
-  authDomain: "fx-swap-piggybank.firebaseapp.com",
-  projectId: "fx-swap-piggybank",
-  storageBucket: "fx-swap-piggybank.firebasestorage.app",
-  messagingSenderId: "984929797846",
-  appId: "1:984929797846:web:6c5e1e883a714dde8dab77",
-  measurementId: "G-MQL10PC8MZ"
+  apiKey: "AIzaSyDhfuLA6aWiBkfnd6WbVmGbBHR3DXGng4A",
+  authDomain: "apg-apps-sync.firebaseapp.com",
+  projectId: "apg-apps-sync",
+  storageBucket: "apg-apps-sync.firebasestorage.app",
+  messagingSenderId: "310254987229",
+  appId: "1:310254987229:web:07784652a2e844f98c7834"
 };
 
 // ===== アフィリエイトリンク設定 =====
