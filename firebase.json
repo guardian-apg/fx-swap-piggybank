@@ -23,15 +23,14 @@
     "indexes": "firestore.indexes.json"
   },
   "functions": {
-    "source": "functions",
-    "runtime": "nodejs20"
+    "source": "functions"
   },
   "emulators": {
     "auth": {
       "port": 9099
     },
     "firestore": {
-      "port": 8080
+      "port": 8089
     },
     "functions": {
       "port": 5001

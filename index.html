@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="referrer" content="no-referrer">
-  <title>FXスワップ貯金箱 - スワップポイント管理アプリ</title>
-  <meta name="description" content="FXスワップポイントを自動集計・管理するアプリ。毎日の獲得スワップを可視化し、長期資産形成をサポートします。">
+  <title>fx-swap-bank - スワップポイント管理アプリ</title>
+  <meta name="description" content="fx-swap-bank：FXスワップポイントを自動集計・管理するアプリ。毎日の獲得スワップを可視化し、長期資産形成をサポートします。">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,6 +19,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -39,8 +40,8 @@
         <rect width="48" height="48" rx="12" fill="rgba(255,153,0,0.1)" stroke="rgba(255,153,0,0.3)" stroke-width="1"/>
         <text x="24" y="32" text-anchor="middle" font-size="26" fill="#FF9900">🐷</text>
       </svg>
-      <h1>FXスワップ貯金箱</h1>
-      <div class="logo-sub">FX Swap Piggy Bank</div>
+      <h1>fx-swap-bank</h1>
+      <div class="logo-sub">FX Swap Bank</div>
       <div class="demo-badge">DEMO MODE</div>
     </div>
 
@@ -141,7 +142,7 @@
       <!-- ヘッダー -->
       <header class="home-header">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span class="home-logo">🐷 FXスワップ貯金箱</span>
+          <span class="home-logo">🐷 fx-swap-bank</span>
           <button class="btn-primary" id="home-settings-shortcut" style="padding: 6px 12px; font-size: 11px; margin-top: 0; width: auto; display: flex; align-items: center; gap: 4px; border-radius: 6px;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -179,12 +180,12 @@
         </div>
         <div class="summary-card">
           <div class="summary-card-label">保有口座数</div>
-          <div class="summary-card-value dim" id="home-account-count">0</div>
+          <div class="summary-card-value yellow-italic" id="home-account-count">0</div>
           <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">口座</div>
         </div>
         <div class="summary-card">
           <div class="summary-card-label">月次換算（目安）</div>
-          <div class="summary-card-value green" id="home-monthly-est">0</div>
+          <div class="summary-card-value yellow-italic" id="home-monthly-est">0</div>
           <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">円/月</div>
         </div>
       </div>
@@ -462,9 +463,13 @@
             </select>
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:16px;">
+        <div class="form-group" style="margin-bottom:12px;">
           <label for="crud-amount">保有数量（通貨単位）</label>
-          <input type="text" id="crud-amount" placeholder="例: 55,000（55,000通貨）">
+          <input type="text" id="crud-amount" inputmode="numeric" pattern="[0-9]*" placeholder="例: 55,000（55,000通貨）">
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="crud-initial-swap">これまでに獲得したスワップ（円）</label>
+          <input type="text" id="crud-initial-swap" inputmode="numeric" pattern="[0-9]*" placeholder="例: 15,000（過去の蓄積スワップがあれば入力）">
         </div>
         <div style="display:flex;gap:8px;">
           <button class="btn-primary" id="crud-save-btn" style="padding:12px;">登録する</button>

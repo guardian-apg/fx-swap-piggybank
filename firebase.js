@@ -82,6 +82,16 @@ window.AFFILIATE_LINKS = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const functions = firebase.functions();
+
+// ローカル環境の場合は自動的にFirebaseエミュレータに接続する
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  console.log("Firebase Emulators are enabled (localhost detected)");
+  db.useEmulator('localhost', 8089);
+  auth.useEmulator('http://localhost:9099');
+  functions.useEmulator('localhost', 5001);
+}
+
 
 // ===== 認証ヘルパー =====
 
@@ -190,21 +200,16 @@ async function getMasterSwaps(date) {
  * 最新のマスタスワップデータを取得（broker_id + currency_pair + directionごと）
  */
 async function getLatestMasterSwaps() {
-  const snap = await db.collection('master_swaps')
-    .orderBy('date', 'desc')
-    .limit(200)
-    .get();
-  const all = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-  // broker_id + currency_pair + direction の組み合わせごとに最新1件を残す
-  const latestMap = {};
-  for (const item of all) {
-    const key = `${item.broker_id}_${item.currency_pair}_${item.direction}`;
-    if (!latestMap[key]) {
-      latestMap[key] = item;
-    }
+  try {
+    const getFinancialData = firebase.functions().httpsCallable('get_financial_data');
+    const result = await getFinancialData();
+    const data = result.data || {};
+    return data.swaps || [];
+  } catch (err) {
+    console.error('get_financial_data Callable Error:', err);
+    // 未購読や未認証でエラーが返ってきた場合、空配列を返すかエラーを表示
+    throw err;
   }
-  return Object.values(latestMap);
 }
 
 // ===== デモ用モックデータ（Firebase未接続時のフォールバック）=====

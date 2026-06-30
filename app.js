@@ -176,6 +176,7 @@ const els = {
   crudPair:          document.getElementById('crud-pair'),
   crudDirection:     document.getElementById('crud-direction'),
   crudAmount:        document.getElementById('crud-amount'),
+  crudInitialSwap:   document.getElementById('crud-initial-swap'),
   crudSaveBtn:       document.getElementById('crud-save-btn'),
   crudCancelBtn:     document.getElementById('crud-cancel-btn'),
   crudPositionList:  document.getElementById('crud-position-list'),
@@ -343,11 +344,29 @@ function clearLoginError() {
 // ===== 6. データ読み込み =====
 async function loadAllData() {
   try {
-    [state.positions, state.masterSwaps, state.swapHistory] = await Promise.all([
+    const results = await Promise.allSettled([
       fetchPositions(state.uid),
       fetchLatestMasterSwaps(),
       fetchSwapHistory(state.uid),
     ]);
+
+    state.positions = results[0].status === 'fulfilled' ? results[0].value : [];
+    
+    if (results[1].status === 'fulfilled') {
+      state.masterSwaps = results[1].value;
+      state.isSubscribed = true;
+    } else {
+      state.masterSwaps = [];
+      state.isSubscribed = false;
+      const err = results[1].reason;
+      if (err && (err.code === 'permission-denied' || err.message.includes('PERMISSION_DENIED'))) {
+        showSnackbar('有効なサブスクリプションがありません。市場データを利用するには購読が必要です。');
+      } else {
+        showSnackbar('市場データの取得に失敗しました');
+      }
+    }
+
+    state.swapHistory = results[2].status === 'fulfilled' ? results[2].value : [];
     updateAllUI();
   } catch (err) {
     console.error('データ読み込みエラー:', err);
@@ -415,8 +434,9 @@ function updateHomeTab() {
   }
   state.todaySwap = todayTotal;
 
-  // 累計スワップ（履歴から集計）
-  const totalSwap = state.swapHistory.reduce((s, h) => s + (h.earned_amount || 0), 0);
+  // 累計スワップ（履歴から集計 ＋ これまで獲得したスワップの初期登録値）
+  const initialSwapsSum = state.positions.reduce((s, p) => s + (parseInt(p.initial_swap, 10) || 0), 0);
+  const totalSwap = state.swapHistory.reduce((s, h) => s + (h.earned_amount || 0), 0) + initialSwapsSum;
 
   // 今月合計
   const thisMonth = today.slice(0, 7); // "YYYY-MM"
@@ -496,10 +516,10 @@ function renderAccountCards() {
       ? pos.amount * master.swap_per_single_unit * master.days_attributed
       : 0;
 
-    // 累計スワップ（この口座分）
+    // 累計スワップ（この口座分 ＋ これまで獲得したスワップ）
     const cumulSwap = state.swapHistory
       .filter(h => h.broker_id === pos.broker_id && h.currency_pair === pos.currency_pair)
-      .reduce((s, h) => s + (h.earned_amount || 0), 0);
+      .reduce((s, h) => s + (h.earned_amount || 0), 0) + (parseInt(pos.initial_swap, 10) || 0);
 
     // ダミー評価損益・維持率・レバレッジ（実データは証券会社API連携が必要）
     const evalPnl    = 0;   // ダミー
@@ -770,6 +790,42 @@ function closeModal(id) {
   if (el) el.classList.remove('open');
 }
 
+// 数量・金額入力時にリアルタイムでカンマを付与する（カーソル位置維持対応）
+function formatCurrencyInput(e) {
+  const input = e.target;
+  const originalValue = input.value;
+  const cursorPosition = input.selectionStart;
+  
+  // 数字以外の文字を排除
+  const value = originalValue.replace(/[^\d]/g, '');
+  if (value) {
+    const formatted = parseInt(value, 10).toLocaleString('ja-JP');
+    input.value = formatted;
+    
+    // カンマ追加による文字数変化を考慮してカーソル位置を調整
+    const commasBefore = (originalValue.substring(0, cursorPosition).match(/,/g) || []).length;
+    const rawNumbersBefore = originalValue.substring(0, cursorPosition).replace(/[^\d]/g, '').length;
+    
+    // 新しい文字列内でのカーソル位置を算出
+    let newCursorPosition = 0;
+    let numbersSeen = 0;
+    while (newCursorPosition < formatted.length && numbersSeen < rawNumbersBefore) {
+      if (formatted[newCursorPosition] !== ',') {
+        numbersSeen++;
+      }
+      newCursorPosition++;
+    }
+    // 隣り合うカンマの直後にカーソルが来る場合の微調整
+    while (newCursorPosition < formatted.length && formatted[newCursorPosition] === ',') {
+      newCursorPosition++;
+    }
+    
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+  } else {
+    input.value = '';
+  }
+}
+
 // ===== 13. CRUD（口座設定） =====
 function setupCRUDListeners() {
   els.crudBroker.addEventListener('change', () => {
@@ -780,41 +836,8 @@ function setupCRUDListeners() {
     }
   });
 
-  // 数量入力時にリアルタイムでカンマを付与する（カーソル位置維持対応）
-  els.crudAmount.addEventListener('input', (e) => {
-    const input = e.target;
-    const originalValue = input.value;
-    const cursorPosition = input.selectionStart;
-    
-    // 数字以外の文字を排除
-    const value = originalValue.replace(/[^\d]/g, '');
-    if (value) {
-      const formatted = parseInt(value, 10).toLocaleString('ja-JP');
-      input.value = formatted;
-      
-      // カンマ追加による文字数変化を考慮してカーソル位置を調整
-      const commasBefore = (originalValue.substring(0, cursorPosition).match(/,/g) || []).length;
-      const rawNumbersBefore = originalValue.substring(0, cursorPosition).replace(/[^\d]/g, '').length;
-      
-      // 新しい文字列内でのカーソル位置を算出
-      let newCursorPosition = 0;
-      let numbersSeen = 0;
-      while (newCursorPosition < formatted.length && numbersSeen < rawNumbersBefore) {
-        if (formatted[newCursorPosition] !== ',') {
-          numbersSeen++;
-        }
-        newCursorPosition++;
-      }
-      // 隣り合うカンマの直後にカーソルが来る場合の微調整
-      while (newCursorPosition < formatted.length && formatted[newCursorPosition] === ',') {
-        newCursorPosition++;
-      }
-      
-      input.setSelectionRange(newCursorPosition, newCursorPosition);
-    } else {
-      input.value = '';
-    }
-  });
+  els.crudAmount.addEventListener('input', formatCurrencyInput);
+  els.crudInitialSwap.addEventListener('input', formatCurrencyInput);
 
   els.crudSaveBtn.addEventListener('click', handleCRUDSave);
   els.crudCancelBtn.addEventListener('click', resetCRUDForm);
@@ -827,13 +850,15 @@ async function handleCRUDSave() {
   // カンマを除去して数値に変換
   const rawAmountStr = els.crudAmount.value.replace(/,/g, '');
   const amount    = parseInt(rawAmountStr, 10);
+  const rawInitialSwapStr = els.crudInitialSwap.value.replace(/,/g, '');
+  const initialSwap = parseInt(rawInitialSwapStr, 10) || 0;
 
   if (!broker || !pair || !direction || !amount || amount <= 0) {
     showSnackbar('すべての項目を入力してください');
     return;
   }
 
-  const posData = { broker_id: broker, currency_pair: pair, direction, amount };
+  const posData = { broker_id: broker, currency_pair: pair, direction, amount, initial_swap: initialSwap };
 
   try {
     const editId = els.crudEditId.value;
@@ -865,7 +890,10 @@ function renderCRUDList() {
           ${BROKER_NAMES[pos.broker_id] || pos.broker_id}
           <span class="direction-badge ${pos.direction}" style="margin-left:4px;">${pos.direction === 'buy' ? '買' : '売'}</span>
         </div>
-        <div class="position-info-detail">${PAIR_NAMES[pos.currency_pair] || pos.currency_pair} ／ <span class="italic-num">${formatComma(pos.amount)}</span>通貨</div>
+        <div class="position-info-detail">
+          ${PAIR_NAMES[pos.currency_pair] || pos.currency_pair} ／ <span class="italic-num">${formatComma(pos.amount)}</span>通貨<br>
+          <span style="font-size:11px;color:var(--text-dim);">貯金スワップ: <span class="italic-num">${formatComma(pos.initial_swap || 0)}</span>円</span>
+        </div>
       </div>
       <div class="position-actions">
         <button class="btn-edit" onclick="startEditPosition('${pos.id}')">編集</button>
@@ -882,6 +910,7 @@ function startEditPosition(posId) {
   els.crudPair.value        = pos.currency_pair;
   els.crudDirection.value   = pos.direction;
   els.crudAmount.value      = pos.amount ? parseInt(pos.amount, 10).toLocaleString('ja-JP') : '';
+  els.crudInitialSwap.value  = pos.initial_swap ? parseInt(pos.initial_swap, 10).toLocaleString('ja-JP') : '';
   els.crudFormTitle.textContent = 'ポジションを編集';
   els.crudSaveBtn.textContent   = '更新する';
   els.crudCancelBtn.style.display = '';
@@ -906,6 +935,7 @@ function resetCRUDForm() {
   els.crudPair.value            = 'USD_JPY';
   els.crudDirection.value       = 'buy';
   els.crudAmount.value          = '';
+  els.crudInitialSwap.value     = '';
   els.crudFormTitle.textContent = 'ポジションを追加';
   els.crudSaveBtn.textContent   = '登録する';
   els.crudCancelBtn.style.display = 'none';
